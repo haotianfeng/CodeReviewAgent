@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {
+      "title": "Python syntax error",
+      "file": "input.py"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "findings": [
+    {
+      "title": "Mutable default argument",
+      "file": "input.py"
+    },
+    {
+      "title": "Dynamic code execution is unsafe",
+      "file": "input.py"
+    },
+    {
+      "title": "Subprocess uses shell=True",
+      "file": "input.py"
+    },
+    {
+      "title": "Bare except catches every exception",
+      "file": "input.py"
+    }
+  ]
+}

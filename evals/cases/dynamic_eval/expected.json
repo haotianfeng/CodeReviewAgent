@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {
+      "title": "Dynamic code execution is unsafe",
+      "file": "input.py"
+    }
+  ]
+}

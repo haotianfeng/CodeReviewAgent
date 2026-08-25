@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {
+      "title": "Subprocess uses shell=True",
+      "file": "input.py"
+    }
+  ]
+}

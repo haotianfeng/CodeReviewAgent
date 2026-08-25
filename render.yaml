@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: codereview-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://opencode.ai/zen/go/v1
+      - key: CODE_REVIEW_MODEL
+        value: gpt-5.6-luna
+      - key: CODE_REVIEW_MAX_FILES
+        value: "30"
+      - key: CODE_REVIEW_MAX_CHARS
+        value: "50000"
+      - key: DEMO_ACCESS_PASSWORD
+        sync: false
+      - key: DEMO_MAX_REVIEWS_PER_SESSION
+        value: "10"

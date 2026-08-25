@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {
+      "title": "Bare except catches every exception",
+      "file": "input.py"
+    }
+  ]
+}

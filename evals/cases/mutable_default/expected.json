@@ -1,0 +1,8 @@
+{
+  "findings": [
+    {
+      "title": "Mutable default argument",
+      "file": "input.py"
+    }
+  ]
+}
