@@ -145,21 +145,34 @@ def _apply_unified_patch_to_text(
     cursor = 0
     for old_start, _old_count, body in hunks:
         target = old_start - 1
+        old_lines = [line[1:] for line in body if line.startswith((" ", "-"))]
+        if old_lines:
+            candidates = [
+                candidate
+                for candidate in range(cursor, len(original) - len(old_lines) + 1)
+                if original[candidate : candidate + len(old_lines)] == old_lines
+            ]
+            if target not in candidates:
+                if len(candidates) == 1:
+                    target = candidates[0]
+                elif len(candidates) > 1:
+                    raise PatchError("Patch 上下文在原文件中存在多个匹配位置，已拒绝自动定位")
         if target < cursor or target > len(original):
-            raise PatchError("Patch hunk 的行号超出原文件范围")
+            raise PatchError(f"Patch hunk 的行号超出原文件范围：第 {old_start} 行")
         result.extend(original[cursor:target])
+        cursor = target
         for line in body:
             marker, value = line[:1], line[1:]
             if marker == "\\":
                 continue
             if marker == " ":
                 if cursor >= len(original) or original[cursor] != value:
-                    raise PatchError("Patch 上下文与原文件不一致，已拒绝应用")
+                    raise PatchError(f"Patch 上下文与原文件不一致（第 {cursor + 1} 行），已拒绝应用")
                 result.append(value)
                 cursor += 1
             elif marker == "-":
                 if cursor >= len(original) or original[cursor] != value:
-                    raise PatchError("Patch 删除内容与原文件不一致，已拒绝应用")
+                    raise PatchError(f"Patch 删除内容与原文件不一致（第 {cursor + 1} 行），已拒绝应用")
                 cursor += 1
             elif marker == "+":
                 result.append(value)

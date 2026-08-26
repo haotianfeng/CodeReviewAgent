@@ -9,6 +9,8 @@ from .prompts import build_review_prompt
 from .patcher import PatchError, normalize_unified_patch, safe_relative_path
 from .tools import collect_source_files, run_python_static_checks
 
+MAX_PATCH_ATTEMPTS = 3
+
 
 class CodeReviewAgent:
     """Orchestrates project inspection, deterministic checks, and LLM review."""
@@ -55,14 +57,26 @@ class CodeReviewAgent:
             )
 
         reviewer = LLMReviewer(self.settings.api_key, self.settings.model, self.settings.base_url)
-        patch = reviewer.generate_patch(issue, source)
-        if patch.file != issue.file:
-            raise ValueError(f"模型返回了错误的 Patch 文件：{patch.file}")
-        try:
-            normalized_patch = normalize_unified_patch(patch.patch, source, expected_file=issue.file)
-        except PatchError as exc:
-            raise ValueError(f"模型生成的 Patch 无法通过安全校验：{exc}") from exc
-        return patch.model_copy(update={"patch": normalized_patch})
+        feedback: str | None = None
+        last_error: str | None = None
+        for _attempt in range(MAX_PATCH_ATTEMPTS):
+            patch = (
+                reviewer.generate_patch(issue, source, feedback=feedback)
+                if feedback
+                else reviewer.generate_patch(issue, source)
+            )
+            try:
+                if patch.file != issue.file:
+                    raise PatchError(f"模型返回了错误的 Patch 文件：{patch.file}")
+                normalized_patch = normalize_unified_patch(patch.patch, source, expected_file=issue.file)
+            except PatchError as exc:
+                last_error = str(exc)
+                feedback = str(exc)
+                continue
+            return patch.model_copy(update={"patch": normalized_patch})
+        raise ValueError(
+            f"模型生成的 Patch 连续 {MAX_PATCH_ATTEMPTS} 次无法通过安全校验：{last_error}"
+        )
 
     @staticmethod
     def _offline_report(project_path: Path, files, static_findings) -> ReviewReport:

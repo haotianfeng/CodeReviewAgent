@@ -12,6 +12,9 @@ PATCH_SYSTEM_PROMPT = """你是一名资深软件工程师，正在为代码审�
 返回包含 Unified Diff 的结构化响应，且只能修改一个已存在的文件。
 Diff 的 --- 和 +++ 文件头必须使用提供的相对路径。
 只修改解决当前审查问题所必需的内容。
+生成 Diff 前，必须先在给定的完整源文件中找到要修改的确切代码。
+上下文行和删除行必须逐字复制自源文件，保留原有缩进、空格、标点和大小写；不要根据问题描述臆造旧代码。
+尽量只使用修改位置附近的最少上下文，确保 hunk 的行号和行数与实际 Diff 内容一致。
 summary 和 verification 必须全部使用简体中文；file、路径、代码和 Diff 内容保持原格式。
 不要在 patch 中加入 Markdown 代码围栏、解释文字或无关文件的修改。
 如果无法根据给定源代码安全修复问题，请返回空 patch，并用简体中文说明原因。
@@ -39,12 +42,23 @@ class LLMReviewer:
             raise RuntimeError("The model did not return a structured review report.")
         return response.output_parsed
 
-    def generate_patch(self, issue: ReviewIssue, source: str) -> PatchResponse:
+    def generate_patch(
+        self, issue: ReviewIssue, source: str, feedback: str | None = None
+    ) -> PatchResponse:
+        correction = ""
+        if feedback:
+            correction = (
+                "\n\n上一次生成的 Patch 未通过本地安全校验，失败原因如下：\n"
+                f"{feedback}\n"
+                "请重新生成完整 Patch。只使用完整源文件中逐字存在的上下文行和删除行，"
+                "不要沿用上一次错误的旧代码。\n"
+            )
         prompt = (
             "请为以下审查问题生成最小化 Unified Diff。summary 和 verification 必须使用简体中文；"
             "file、路径、代码和 Diff 内容保持原格式。\n\n"
             f"审查问题：\n{json.dumps(issue.model_dump(), ensure_ascii=False, indent=2)}\n\n"
             f"源代码文件（{issue.file}）：\n{source}"
+            f"{correction}"
         )
         response = self.client.responses.parse(
             model=self.model,

@@ -21,6 +21,7 @@ PATCH = """--- a/sample.py
 """
 
 MALFORMED_COUNT_PATCH = PATCH.replace("@@ -1,2 +1,2 @@", "@@ -1,7 +1,5 @@")
+WRONG_START_PATCH = PATCH
 
 
 def test_apply_unified_patch_to_text_checks_context() -> None:
@@ -57,6 +58,18 @@ def test_patch_count_repair_does_not_bypass_context_validation() -> None:
             "def run():\n    return 9\n",
             expected_file="sample.py",
         )
+
+
+def test_patch_relocates_unique_context_when_hunk_start_is_wrong() -> None:
+    source = "header = 1\nheader = 2\ndef run():\n    return 1\n"
+
+    updated, _filename = apply_unified_patch_to_text(
+        source,
+        WRONG_START_PATCH,
+        expected_file="sample.py",
+    )
+
+    assert updated == "header = 1\nheader = 2\ndef run():\n    return 2\n"
 
 
 def test_apply_patch_uses_isolated_copy_and_creates_zip(tmp_path: Path) -> None:
