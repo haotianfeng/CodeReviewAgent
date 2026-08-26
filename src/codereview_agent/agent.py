@@ -49,8 +49,10 @@ class CodeReviewAgent:
             source = source_path.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
             raise ValueError(f"无法按 UTF-8 读取文件：{issue.file}") from exc
-        if len(source) > self.settings.max_chars:
-            raise ValueError(f"文件超过当前配置的字符限制，暂不生成 Patch：{issue.file}")
+        if len(source) > self.settings.max_patch_chars:
+            raise ValueError(
+                f"文件超过 Patch 字符限制（{self.settings.max_patch_chars:,}），暂不生成 Patch：{issue.file}"
+            )
 
         reviewer = LLMReviewer(self.settings.api_key, self.settings.model, self.settings.base_url)
         patch = reviewer.generate_patch(issue, source)

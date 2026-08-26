@@ -12,13 +12,15 @@ def test_placeholder_api_key_is_treated_as_unconfigured(monkeypatch) -> None:
     assert settings.base_url == "https://example.test/v1"
 
 
-def test_default_source_character_limit_is_100000(monkeypatch) -> None:
+def test_default_source_and_patch_character_limits(monkeypatch) -> None:
     monkeypatch.delenv("CODE_REVIEW_MAX_CHARS", raising=False)
+    monkeypatch.delenv("CODE_REVIEW_MAX_PATCH_CHARS", raising=False)
     monkeypatch.setattr(config, "_read_streamlit_secrets", lambda: {})
 
     settings = Settings.from_env()
 
     assert settings.max_chars == 100_000
+    assert settings.max_patch_chars == 300_000
 
 
 def test_streamlit_secrets_are_used_when_environment_is_empty(monkeypatch) -> None:

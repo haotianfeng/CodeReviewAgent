@@ -80,6 +80,7 @@ OPENAI_API_KEY=你的_OpenCode_Go_API_Key
 OPENAI_BASE_URL=https://opencode.ai/zen/go/v1
 CODE_REVIEW_MODEL=gpt-5.6-luna
 CODE_REVIEW_MAX_CHARS=100000
+CODE_REVIEW_MAX_PATCH_CHARS=300000
 ```
 
 也可以不配置 `.env`，直接在网页顶部输入个人 API Key。API Key 不要提交到 GitHub，也不要上传包含密钥、密码、Token 或证书的源代码。
@@ -107,7 +108,7 @@ CODE_REVIEW_MAX_CHARS=100000
 - 页面输入的个人 API Key 仅用于当前 Streamlit 会话，点击“清除 / 退出”后会清理会话中的凭据和审查结果。
 - 生成的 Patch 只允许针对一个已存在的源文件，并会先在临时副本中校验；原始上传文件不会被修改。
 - 单个文件最大 25 MB，ZIP 内源代码总大小最大 100 MB。
-- 模型审查和单个 Patch 的源代码字符上限默认为 100,000，可通过 `CODE_REVIEW_MAX_CHARS` 调整。
+- 模型审查的源代码字符上限默认为 100,000；单个 Patch 文件上限默认为 300,000，可分别通过 `CODE_REVIEW_MAX_CHARS` 和 `CODE_REVIEW_MAX_PATCH_CHARS` 调整。
 - 当前网页不提供账号注册、权限管理或跨会话历史记录功能。
 
 ## 项目地址

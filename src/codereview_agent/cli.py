@@ -27,6 +27,7 @@ def main() -> None:
             model=args.model,
             max_files=settings.max_files,
             max_chars=settings.max_chars,
+            max_patch_chars=settings.max_patch_chars,
             demo_access_password=settings.demo_access_password,
             max_reviews_per_session=settings.max_reviews_per_session,
         )
