@@ -35,7 +35,7 @@ class Settings:
     base_url: str | None
     model: str
     max_files: int = 30
-    max_chars: int = 50_000
+    max_chars: int = 100_000
     demo_access_password: str | None = None
     max_reviews_per_session: int = 10
 
@@ -62,7 +62,7 @@ class Settings:
             base_url=str(setting("OPENAI_BASE_URL", "")) or DEFAULT_OPENCODE_GO_BASE_URL,
             model=str(setting("CODE_REVIEW_MODEL", "gpt-5.6-luna")),
             max_files=int(setting("CODE_REVIEW_MAX_FILES", "30")),
-            max_chars=int(setting("CODE_REVIEW_MAX_CHARS", "50000")),
+            max_chars=int(setting("CODE_REVIEW_MAX_CHARS", "100000")),
             demo_access_password=str(setting("DEMO_ACCESS_PASSWORD", "")) or None,
             max_reviews_per_session=int(setting("DEMO_MAX_REVIEWS_PER_SESSION", "10")),
         )

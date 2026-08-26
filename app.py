@@ -539,6 +539,7 @@ def main() -> None:
         st.text_input("Base URL", value=settings.base_url, disabled=True)
         st.divider()
         st.caption("单文件最大 25 MB；ZIP 内源代码总大小最大 100 MB。")
+        st.caption(f"模型审查和 Patch 源代码字符上限：{settings.max_chars:,}。")
         st.caption("支持 Python、JavaScript、TypeScript、Java 和 Go。")
 
     st.markdown("#### 选择要审查的代码")
