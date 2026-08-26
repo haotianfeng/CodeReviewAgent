@@ -4,7 +4,7 @@ from pathlib import Path
 
 from .config import Settings
 from .llm import LLMReviewer
-from .models import PatchResponse, ReviewIssue, ReviewReport
+from .models import PatchResponse, ReviewIssue, ReviewMetadata, ReviewReport
 from .prompts import build_review_prompt
 from .patcher import safe_relative_path
 from .tools import collect_source_files, run_python_static_checks
@@ -29,13 +29,10 @@ class CodeReviewAgent:
         reviewer = LLMReviewer(self.settings.api_key, self.settings.model, self.settings.base_url)
         prompt = build_review_prompt([(item.path, item.content) for item in files], static_findings)
         report = reviewer.review(prompt)
-        report.metadata.update(
-            {
-                "project": str(project_path),
-                "files_reviewed": str(len(files)),
-                "model": self.settings.model,
-            }
-        )
+        report.metadata.project = str(project_path)
+        report.metadata.mode = "llm"
+        report.metadata.files_reviewed = str(len(files))
+        report.metadata.model = self.settings.model
         return report
 
     def generate_patch(self, project_dir: str | Path, issue: ReviewIssue) -> PatchResponse:
@@ -73,5 +70,9 @@ class CodeReviewAgent:
             score=score,
             issues=issues,
             strengths=[f"Collected {len(files)} supported source file(s) safely."],
-            metadata={"project": str(project_path), "mode": "offline", "files_reviewed": str(len(files))},
+            metadata=ReviewMetadata(
+                project=str(project_path),
+                mode="offline",
+                files_reviewed=str(len(files)),
+            ),
         )

@@ -20,6 +20,15 @@ class ReviewIssue(BaseModel):
     suggestion: str
 
 
+class ReviewMetadata(BaseModel):
+    """Fixed runtime metadata fields kept compatible with strict JSON Schema."""
+
+    project: str = Field(default="", description="Absolute path or project identifier")
+    mode: str = Field(default="", description="Review mode, normally offline or llm")
+    files_reviewed: str = Field(default="", description="Number of reviewed source files")
+    model: str = Field(default="", description="Model identifier used for the review")
+
+
 class ReviewReport(BaseModel):
     """Stable output contract for the CLI, web UI, and future GitHub bot."""
 
@@ -27,7 +36,7 @@ class ReviewReport(BaseModel):
     score: int = Field(ge=0, le=100)
     issues: list[ReviewIssue] = Field(default_factory=list)
     strengths: list[str] = Field(default_factory=list)
-    metadata: dict[str, str] = Field(default_factory=dict)
+    metadata: ReviewMetadata = Field(default_factory=ReviewMetadata)
 
 
 class PatchResponse(BaseModel):

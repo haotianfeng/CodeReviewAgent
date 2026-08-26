@@ -399,8 +399,8 @@ def _render_report(report: ReviewReport, root: Path | None, settings: Settings, 
     metric_columns = st.columns(4)
     metric_columns[0].metric("综合评分", f"{report.score}/100")
     metric_columns[1].metric("发现问题", len(report.issues))
-    metric_columns[2].metric("审查文件", report.metadata.get("files_reviewed", "-"))
-    metric_columns[3].metric("运行模式", "离线" if report.metadata.get("mode") == "offline" else "LLM")
+    metric_columns[2].metric("审查文件", report.metadata.files_reviewed or "-")
+    metric_columns[3].metric("运行模式", "离线" if report.metadata.mode == "offline" else "LLM")
     st.progress(report.score / 100, text=f"代码质量评分：{report.score}/100")
 
     review_tab, patch_tab, download_tab = st.tabs(

@@ -17,8 +17,14 @@ Return valid JSON matching this shape exactly:
     }
   ],
   "strengths": ["specific positive observation"],
-  "metadata": {}
+  "metadata": {
+    "project": "",
+    "mode": "llm",
+    "files_reviewed": "",
+    "model": ""
+  }
 }
+The metadata fields have a fixed shape. Return empty strings when their runtime value is not known; the application will overwrite them with authoritative values.
 Only report actionable findings supported by the code. Use null for line when a line cannot be identified.
 """
 
@@ -31,4 +37,3 @@ def build_review_prompt(files: list[tuple[str, str]], static_findings: list[dict
         sections.append("\n===== DETERMINISTIC CHECKS =====\n")
         sections.append(str(static_findings))
     return "".join(sections)
-
