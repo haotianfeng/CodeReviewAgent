@@ -30,3 +30,18 @@ def test_streamlit_secrets_are_used_when_environment_is_empty(monkeypatch) -> No
     assert settings.api_key == "secret-from-streamlit"
     assert settings.base_url == "https://example.test/v1"
     assert settings.model == "test-model"
+
+
+def test_session_api_key_can_override_application_settings() -> None:
+    settings = Settings(
+        api_key="application-key",
+        base_url="https://example.test/v1",
+        model="test-model",
+    )
+
+    session_settings = settings.with_api_key("  session-key  ")
+
+    assert settings.api_key == "application-key"
+    assert session_settings.api_key == "session-key"
+    assert session_settings.base_url == settings.base_url
+    assert session_settings.model == settings.model

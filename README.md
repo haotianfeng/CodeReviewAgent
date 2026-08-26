@@ -1,6 +1,6 @@
 # CodeReviewAgent
 
-CodeReviewAgent 是一个基于 Python、Streamlit 和大语言模型的智能代码审查工具。用户可以上传代码文件或 ZIP 项目，系统会运行确定性的 Python 检查，并调用 OpenCode Go 的 GPT-5.6 Luna 生成结构化审查报告。
+CodeReviewAgent 是一个基于 Python、Streamlit 和大语言模型的智能代码审查工具。用户可以上传代码文件或 ZIP 项目，系统会运行确定性的 Python 检查，并调用 OpenCode Go 的 GPT-5.6 Luna 生成结构化审查报告。项目采用 Streamlit 单体架构，不需要额外部署独立后端。
 
 ## 当前功能
 
@@ -13,7 +13,9 @@ CodeReviewAgent 是一个基于 Python、Streamlit 和大语言模型的智能�
 - 在页面中查看问题附近的代码片段
 - 下载 Markdown 和 JSON 格式的审查报告
 - 针对单个问题生成 Unified Diff 修复 Patch
+- 独立 Patch 工作区：预览 Diff、查看验证建议、下载 `.patch`
 - 在临时副本中校验 Patch、执行 Python 语法检查并下载修复版 ZIP
+- 页面内配置个人 API Key；密钥只保存在当前会话，并优先于应用级配置
 - 支持 CLI 和 Streamlit 页面两种使用方式
 - 使用 Responses API 和 Pydantic 结构化输出
 
@@ -49,7 +51,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Copy-Item .env.example .env
 ```
 
-编辑 `.env`，填入你自己的 OpenCode Go API Key：
+编辑 `.env`，可以填入本机运行使用的 OpenCode Go API Key：
 
 ```env
 OPENAI_API_KEY=your_opencode_go_api_key_here
@@ -64,6 +66,8 @@ DEMO_MAX_REVIEWS_PER_SESSION=10
 `.env` 只保存在本机，不要提交到 GitHub。`OPENAI_API_KEY` 中应填写 OpenCode Go API Key，而不是示例占位符。
 
 如果暂时没有 API Key，保留占位符即可，应用会自动使用离线模式，不会把占位符发送给模型服务商。
+
+启动网页后，也可以在“配置你的模型 API Key”区域输入个人 Key。它只保存在当前 Streamlit 会话，不会写入数据库、Cookie、URL、项目文件或 GitHub；个人 Key 会优先于 `.env` 和 Streamlit Secrets 中的应用级 Key。点击“清除 / 退出”可以清理凭据、报告和 Patch 状态。
 
 `DEMO_ACCESS_PASSWORD` 用于保护公开 Demo；本地开发可以留空。`DEMO_MAX_REVIEWS_PER_SESSION` 用于限制单个浏览器会话的审查次数。
 
@@ -105,14 +109,13 @@ http://127.0.0.1:8501
 
 页面操作流程：
 
-1. 上传代码文件或 ZIP 项目。
-2. 确认左侧的模型和 Base URL。
-3. 没有 API Key 时使用“离线模式”；配置 API Key 后取消勾选离线模式。
-4. 点击“开始审查”。
-5. 查看评分、问题详情和代码片段。
-6. 在问题详情中点击“生成修复 Patch”，查看模型建议的 Diff。
-7. 点击“验证 Patch 并生成修复版 ZIP”，下载经过临时副本验证的结果。
-8. 下载 Markdown 或 JSON 报告。
+1. 可在页面顶部配置个人 OpenCode Go API Key；没有 Key 时可以直接使用“离线模式”。
+2. 上传代码文件或 ZIP 项目。
+3. 确认左侧的模型、Base URL 和运行模式，点击“开始审查”。
+4. 在“审查结果”工作区查看评分、问题详情和代码片段。
+5. 在“Patch 修改预览”工作区选择问题，生成并审阅模型建议的 Diff。
+6. 下载 `.patch`，或点击“验证 Patch 并生成修复版 ZIP”。
+7. 在“报告下载”工作区下载 Markdown 或 JSON 报告。
 
 Patch 只会应用到临时副本，并且需要用户主动确认；原始上传内容不会被覆盖。
 
@@ -132,57 +135,49 @@ python evals\run_eval.py --mode llm --output outputs\llm-eval.json
 
 评估脚本会统计案例通过数、问题识别精确率和召回率。
 
-## 部署到 Render
+## 部署到 Streamlit Community Cloud
 
-当前项目可以部署为 Streamlit Web Service。
+当前项目可以直接部署为 Streamlit Community Cloud 应用，不需要单独启动 FastAPI 等后端服务。
 
 ### 1. 推送到 GitHub
 
-如果项目目录还没有 Git 仓库，先在项目根目录执行：
-
-```powershell
-git init
-git remote add origin 你的GitHub仓库地址
-```
-
-确认 `.env` 不在 Git 暂存区，然后提交项目代码：
+确认 `.env` 不在 Git 暂存区，然后提交并推送项目代码：
 
 ```powershell
 git add .
-git commit -m "Deploy CodeReviewAgent Streamlit app"
-git push
+git commit -m "Update CodeReviewAgent app"
+git push origin master
 ```
 
 `.gitignore` 已忽略 `.env`、`.venv`、测试缓存、构建产物和审查输出文件。
 
-### 2. 创建 Render Web Service
+### 2. 创建 Community Cloud 应用
 
-在 Render 中连接 GitHub 仓库，使用以下配置：
-
-```text
-Build Command: pip install -r requirements.txt
-Start Command: streamlit run app.py --server.address 0.0.0.0 --server.port $PORT
-```
-
-也可以在 Render 中选择仓库里的 `render.yaml`，使用 Blueprint 自动读取上述服务配置。
-
-### 3. 添加环境变量
-
-在 Render 的 Environment 页面添加：
+在 [Streamlit Community Cloud](https://share.streamlit.io/) 中连接 GitHub 仓库，选择：
 
 ```text
-OPENAI_API_KEY=你的OpenCode Go API Key
-OPENAI_BASE_URL=https://opencode.ai/zen/go/v1
-CODE_REVIEW_MODEL=gpt-5.6-luna
-CODE_REVIEW_MAX_FILES=30
-CODE_REVIEW_MAX_CHARS=50000
-DEMO_ACCESS_PASSWORD=建议设置一个单独的Demo密码
-DEMO_MAX_REVIEWS_PER_SESSION=10
+Repository: haotianfeng/CodeReviewAgent
+Branch: master
+Main file path: app.py
 ```
 
-部署完成后，使用 Render 提供的公网 URL 访问页面。Render 中的环境变量会被项目自动读取，不需要上传 `.env` 文件。
+Community Cloud 会根据 `requirements.txt` 自动安装依赖，并在 GitHub 推送后重新部署。
 
-Streamlit Community Cloud 请在 Advanced settings 的 Secrets 中使用 TOML 格式填写同名配置；项目同时支持 `.env`、系统环境变量和 `st.secrets`。
+### 3. 添加 Secrets（可选）
+
+在应用的 Advanced settings → Secrets 中使用 TOML 格式。公开 Demo 可以不设置 `OPENAI_API_KEY`，让访问者在网页内输入自己的 Key；如果需要应用级默认 Key，再添加：
+
+```toml
+OPENAI_BASE_URL = "https://opencode.ai/zen/go/v1"
+CODE_REVIEW_MODEL = "gpt-5.6-luna"
+CODE_REVIEW_MAX_FILES = "30"
+CODE_REVIEW_MAX_CHARS = "50000"
+DEMO_ACCESS_PASSWORD = "建议设置一个单独的 Demo 密码"
+DEMO_MAX_REVIEWS_PER_SESSION = "10"
+# OPENAI_API_KEY = "仅在你确实需要共享应用级 Key 时填写"
+```
+
+部署完成后，使用 Community Cloud 提供的公网 URL 访问页面。应用同时支持 `.env`、系统环境变量和 `st.secrets`，不需要上传 `.env` 文件。
 
 ## 项目结构
 
@@ -203,6 +198,7 @@ CodeReviewAgent/
 │   ├── models.py                       # 审查结果数据模型
 │   ├── patcher.py                       # Diff 校验、临时应用和 ZIP 导出
 │   ├── prompts.py                      # 审查提示词
+│   ├── session.py                      # 会话 Key 与状态清理
 │   └── tools.py                        # 文件读取和静态检查
 ├── evals/                              # 标准案例和评估脚本
 └── tests/                              # 单元测试
@@ -221,8 +217,9 @@ python -m pytest -q --basetemp .pytest-temp
 - 当前应用不会执行用户上传的代码，只读取源文件并进行文本/AST 分析。
 - 单个上传文件最大 25 MB，ZIP 内源代码总大小最大 100 MB。
 - 生成的 Patch 只允许修改一个已存在的源文件，并且会先在临时副本中验证。
-- 当前应用没有用户登录、权限管理和 API 调用限流，不适合直接用于敏感代码或无保护的生产环境。
-- 公网 Demo 应设置 API 用量限制或访问保护，避免公开 Key 被滥用。
+- 当前应用没有独立账号系统；网页中的 API Key 配置是会话级凭据，不提供账号注册、权限管理或跨会话历史。
+- 应用不会显示或记录完整 API Key，但上传代码会发送到配置的模型服务商；不要上传敏感代码。
+- 公网 Demo 应设置 `DEMO_ACCESS_PASSWORD` 和审查次数限制；共享应用级 Key 时还应关注额度和滥用风险。
 
 ## 常见问题
 
@@ -242,7 +239,7 @@ Test-NetConnection 127.0.0.1 -Port 8501
 
 ### 页面显示离线模式
 
-确认当前目录存在 `.env`，并且其中的 `OPENAI_API_KEY` 不是占位符。修改 `.env` 后重新启动 Streamlit。
+可以在页面顶部输入个人 API Key，或确认当前目录存在 `.env`，并且其中的 `OPENAI_API_KEY` 不是占位符。修改 `.env` 后重新启动 Streamlit。
 
 ### 出现模型或接口错误
 

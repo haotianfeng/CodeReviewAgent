@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 try:
@@ -38,6 +38,10 @@ class Settings:
     max_chars: int = 50_000
     demo_access_password: str | None = None
     max_reviews_per_session: int = 10
+
+    def with_api_key(self, api_key: str | None) -> "Settings":
+        """Return a copy using a key supplied by the current browser session."""
+        return replace(self, api_key=api_key.strip() if api_key and api_key.strip() else None)
 
     @classmethod
     def from_env(cls, env_file: Path | None = None) -> "Settings":
