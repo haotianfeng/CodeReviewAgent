@@ -6,7 +6,7 @@ from .config import Settings
 from .llm import LLMReviewer
 from .models import PatchResponse, ReviewIssue, ReviewMetadata, ReviewReport
 from .prompts import build_review_prompt
-from .patcher import safe_relative_path
+from .patcher import PatchError, normalize_unified_patch, safe_relative_path
 from .tools import collect_source_files, run_python_static_checks
 
 
@@ -56,7 +56,11 @@ class CodeReviewAgent:
         patch = reviewer.generate_patch(issue, source)
         if patch.file != issue.file:
             raise ValueError(f"模型返回了错误的 Patch 文件：{patch.file}")
-        return patch
+        try:
+            normalized_patch = normalize_unified_patch(patch.patch, source, expected_file=issue.file)
+        except PatchError as exc:
+            raise ValueError(f"模型生成的 Patch 无法通过安全校验：{exc}") from exc
+        return patch.model_copy(update={"patch": normalized_patch})
 
     @staticmethod
     def _offline_report(project_path: Path, files, static_findings) -> ReviewReport:

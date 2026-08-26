@@ -46,6 +46,15 @@ def _patch_path(header: str) -> Path:
     return safe_relative_path(value)
 
 
+def _rewrite_hunk_header(header: str, match: re.Match[str], old_count: int, new_count: int) -> str:
+    """Rewrite only hunk line counts while preserving starts and context text."""
+    suffix = header[match.end() :]
+    return (
+        f"@@ -{match.group(1)},{old_count} +{match.group(3)},{new_count} @@"
+        f"{suffix}"
+    )
+
+
 def _clean_patch(patch: str) -> list[str]:
     text = patch.replace("\r\n", "\n").strip()
     if text.startswith("```"):
@@ -62,8 +71,9 @@ def _clean_patch(patch: str) -> list[str]:
     return lines[header_index:]
 
 
-def _parse_patch(patch: str) -> tuple[Path, list[tuple[int, int, list[str]]]]:
-    lines = _clean_patch(patch)
+def _parse_patch_lines(
+    lines: list[str], *, repair_counts: bool = False
+) -> tuple[Path, list[tuple[int, int, list[str]]]]:
     old_path = _patch_path(lines[0])
     new_path = _patch_path(lines[1])
     if old_path != new_path:
@@ -72,6 +82,7 @@ def _parse_patch(patch: str) -> tuple[Path, list[tuple[int, int, list[str]]]]:
     hunks: list[tuple[int, int, list[str]]] = []
     index = 2
     while index < len(lines):
+        header_index = index
         match = _HUNK_RE.match(lines[index])
         if not match:
             index += 1
@@ -90,10 +101,15 @@ def _parse_patch(patch: str) -> tuple[Path, list[tuple[int, int, list[str]]]]:
         actual_old = sum(1 for line in body if line.startswith((" ", "-")))
         actual_new = sum(1 for line in body if line.startswith((" ", "+")))
         if actual_old != old_count:
-            raise PatchError(f"Patch 原文件行数不匹配：期望 {old_count}，实际 {actual_old}")
+            if not repair_counts:
+                raise PatchError(f"Patch 原文件行数不匹配：期望 {old_count}，实际 {actual_old}")
         new_count = int(match.group(4) or "1")
         if actual_new != new_count:
-            raise PatchError(f"Patch 新文件行数不匹配：期望 {new_count}，实际 {actual_new}")
+            if not repair_counts:
+                raise PatchError(f"Patch 新文件行数不匹配：期望 {new_count}，实际 {actual_new}")
+        if repair_counts and (actual_old != old_count or actual_new != new_count):
+            lines[header_index] = _rewrite_hunk_header(lines[header_index], match, actual_old, actual_new)
+            old_count = actual_old
         hunks.append((old_start, old_count, body))
 
     if not hunks:
@@ -101,8 +117,23 @@ def _parse_patch(patch: str) -> tuple[Path, list[tuple[int, int, list[str]]]]:
     return old_path, hunks
 
 
-def apply_unified_patch_to_text(content: str, patch: str, expected_file: str | None = None) -> tuple[str, str]:
-    """Apply a single-file unified diff after verifying every context line."""
+def _parse_patch(patch: str, *, repair_counts: bool = False) -> tuple[Path, list[tuple[int, int, list[str]]]]:
+    return _parse_patch_lines(_clean_patch(patch), repair_counts=repair_counts)
+
+
+def _repair_patch_counts(patch: str) -> str:
+    """Normalize hunk counts and return a clean, header-first unified diff."""
+    lines = _clean_patch(patch)
+    _parse_patch_lines(lines, repair_counts=True)
+    normalized = "\n".join(lines) + "\n"
+    _parse_patch(normalized)
+    return normalized
+
+
+def _apply_unified_patch_to_text(
+    content: str, patch: str, expected_file: str | None = None
+) -> tuple[str, str]:
+    """Apply an already normalized unified patch after verifying its context."""
     relative_path, hunks = _parse_patch(patch)
     if expected_file is not None and relative_path != safe_relative_path(expected_file):
         raise PatchError(f"Patch 目标文件不是审查问题对应的文件：{relative_path}")
@@ -138,6 +169,21 @@ def apply_unified_patch_to_text(content: str, patch: str, expected_file: str | N
     return updated.replace("\n", line_ending), str(relative_path).replace("\\", "/")
 
 
+def normalize_unified_patch(
+    patch: str, content: str, expected_file: str | None = None
+) -> str:
+    """Repair safe hunk-count errors and validate the patch against source content."""
+    normalized_patch = _repair_patch_counts(patch)
+    _apply_unified_patch_to_text(content, normalized_patch, expected_file)
+    return normalized_patch
+
+
+def apply_unified_patch_to_text(content: str, patch: str, expected_file: str | None = None) -> tuple[str, str]:
+    """Apply a single-file unified diff after repairing and verifying it."""
+    normalized_patch = _repair_patch_counts(patch)
+    return _apply_unified_patch_to_text(content, normalized_patch, expected_file)
+
+
 def _zip_workspace(root: Path) -> bytes:
     buffer = io.BytesIO()
     ignored = {".git", ".venv", "venv", "node_modules", "__pycache__"}
@@ -153,14 +199,15 @@ def apply_patch_to_copy(project_dir: str | Path, patch: str, expected_file: str 
     source_root = Path(project_dir).resolve()
     if not source_root.is_dir():
         raise PatchError(f"项目目录不存在：{source_root}")
-    parsed_file, _hunks = _parse_patch(patch)
+    normalized_patch = _repair_patch_counts(patch)
+    parsed_file, _hunks = _parse_patch(normalized_patch)
     if expected_file is not None and parsed_file != safe_relative_path(expected_file):
         raise PatchError(f"Patch 目标文件不是审查问题对应的文件：{parsed_file}")
     target = (source_root / parsed_file).resolve()
     if source_root not in target.parents or not target.is_file():
         raise PatchError(f"Patch 目标文件不存在：{parsed_file}")
     original = target.read_bytes().decode("utf-8")
-    updated, changed_file = apply_unified_patch_to_text(original, patch, expected_file)
+    updated, changed_file = _apply_unified_patch_to_text(original, normalized_patch, expected_file)
 
     staged_root = Path(tempfile.mkdtemp(prefix="codereview-agent-patched-"))
     try:
