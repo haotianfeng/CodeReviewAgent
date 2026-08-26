@@ -1,4 +1,4 @@
 [server]
 headless = true
 enableXsrfProtection = true
-enableCORS = false
+enableCORS = true

@@ -17,9 +17,19 @@ PLACEHOLDER_API_KEYS = {
 }
 
 
+def _read_streamlit_secrets() -> dict[str, object]:
+    """Read Community Cloud secrets without making Streamlit a core dependency."""
+    try:
+        import streamlit as st
+
+        return dict(st.secrets)
+    except (ImportError, FileNotFoundError, RuntimeError, KeyError):
+        return {}
+
+
 @dataclass(frozen=True)
 class Settings:
-    """Runtime configuration loaded from environment variables and .env."""
+    """Runtime configuration loaded from .env, environment, or Streamlit secrets."""
 
     api_key: str | None
     base_url: str | None
@@ -34,16 +44,21 @@ class Settings:
         if load_dotenv is not None:
             load_dotenv(dotenv_path=env_file, override=False)
 
-        api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        secrets = _read_streamlit_secrets()
+
+        def setting(name: str, default: object = "") -> object:
+            return os.getenv(name, secrets.get(name, default))
+
+        api_key = str(setting("OPENAI_API_KEY", "")).strip()
         if not api_key or api_key in PLACEHOLDER_API_KEYS:
             api_key = None
 
         return cls(
             api_key=api_key,
-            base_url=os.getenv("OPENAI_BASE_URL") or DEFAULT_OPENCODE_GO_BASE_URL,
-            model=os.getenv("CODE_REVIEW_MODEL", "gpt-5.6-luna"),
-            max_files=int(os.getenv("CODE_REVIEW_MAX_FILES", "30")),
-            max_chars=int(os.getenv("CODE_REVIEW_MAX_CHARS", "50000")),
-            demo_access_password=os.getenv("DEMO_ACCESS_PASSWORD") or None,
-            max_reviews_per_session=int(os.getenv("DEMO_MAX_REVIEWS_PER_SESSION", "10")),
+            base_url=str(setting("OPENAI_BASE_URL", "")) or DEFAULT_OPENCODE_GO_BASE_URL,
+            model=str(setting("CODE_REVIEW_MODEL", "gpt-5.6-luna")),
+            max_files=int(setting("CODE_REVIEW_MAX_FILES", "30")),
+            max_chars=int(setting("CODE_REVIEW_MAX_CHARS", "50000")),
+            demo_access_password=str(setting("DEMO_ACCESS_PASSWORD", "")) or None,
+            max_reviews_per_session=int(setting("DEMO_MAX_REVIEWS_PER_SESSION", "10")),
         )

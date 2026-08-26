@@ -182,6 +182,8 @@ DEMO_MAX_REVIEWS_PER_SESSION=10
 
 部署完成后，使用 Render 提供的公网 URL 访问页面。Render 中的环境变量会被项目自动读取，不需要上传 `.env` 文件。
 
+Streamlit Community Cloud 请在 Advanced settings 的 Secrets 中使用 TOML 格式填写同名配置；项目同时支持 `.env`、系统环境变量和 `st.secrets`。
+
 ## 项目结构
 
 ```text
