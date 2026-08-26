@@ -1,7 +1,7 @@
 {
   "findings": [
     {
-      "title": "Dynamic code execution is unsafe",
+      "title": "动态代码执行存在安全风险",
       "file": "input.py"
     }
   ]

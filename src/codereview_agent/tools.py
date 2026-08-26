@@ -61,9 +61,9 @@ def run_python_static_checks(files: list[SourceFile]) -> list[dict[str, object]]
                     "severity": "high",
                     "file": source.path,
                     "line": exc.lineno,
-                    "title": "Python syntax error",
-                    "explanation": exc.msg,
-                    "suggestion": "Fix the syntax error before running or reviewing this module.",
+                    "title": "Python 语法错误",
+                    "explanation": "Python 解析器无法识别此处的语法，请检查该行附近的括号、缩进、冒号和关键字。",
+                    "suggestion": "在运行或审查此模块前修复语法错误。",
                 }
             )
             continue
@@ -76,9 +76,9 @@ def run_python_static_checks(files: list[SourceFile]) -> list[dict[str, object]]
                         "severity": "medium",
                         "file": source.path,
                         "line": node.lineno,
-                        "title": "Bare except catches every exception",
-                        "explanation": "A bare except can hide KeyboardInterrupt, SystemExit, and unexpected failures.",
-                        "suggestion": "Catch the narrowest expected exception type and log the failure context.",
+                        "title": "裸 except 捕获了所有异常",
+                        "explanation": "裸 except 可能隐藏 KeyboardInterrupt、SystemExit 以及其他未预期的失败。",
+                        "suggestion": "捕获范围最小的预期异常类型，并记录失败上下文。",
                     }
                 )
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
@@ -88,9 +88,9 @@ def run_python_static_checks(files: list[SourceFile]) -> list[dict[str, object]]
                         "severity": "high",
                         "file": source.path,
                         "line": node.lineno,
-                        "title": "Dynamic code execution is unsafe",
-                        "explanation": f"{node.func.id} can execute attacker-controlled code when its input is not fully trusted.",
-                        "suggestion": "Replace dynamic evaluation with a safe parser or an explicit allowlist of operations.",
+                        "title": "动态代码执行存在安全风险",
+                        "explanation": f"当输入不完全可信时，{node.func.id} 可能执行攻击者控制的代码。",
+                        "suggestion": "使用安全解析器或明确的操作白名单替代动态执行。",
                     }
                 )
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
@@ -108,9 +108,9 @@ def run_python_static_checks(files: list[SourceFile]) -> list[dict[str, object]]
                                 "severity": "high",
                                 "file": source.path,
                                 "line": node.lineno,
-                                "title": "Subprocess uses shell=True",
-                                "explanation": "Passing shell=True can turn untrusted command input into shell injection.",
-                                "suggestion": "Pass an argument list with shell=False and validate each argument.",
+                                "title": "子进程调用使用了 shell=True",
+                                "explanation": "传入 shell=True 可能将不可信命令输入转化为 Shell 注入。",
+                                "suggestion": "使用参数列表并设置 shell=False，同时校验每个参数。",
                             }
                         )
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -122,9 +122,9 @@ def run_python_static_checks(files: list[SourceFile]) -> list[dict[str, object]]
                             "severity": "medium",
                             "file": source.path,
                             "line": node.lineno,
-                            "title": "Mutable default argument",
-                            "explanation": "A list, dictionary, or set default is shared across function calls and can retain stale state.",
-                            "suggestion": "Use None as the default and create a new mutable value inside the function.",
+                            "title": "函数使用了可变默认参数",
+                            "explanation": "列表、字典或集合默认值会在多次函数调用之间共享，并可能保留过期状态。",
+                            "suggestion": "使用 None 作为默认值，并在函数内部创建新的可变对象。",
                         }
                     )
     return findings

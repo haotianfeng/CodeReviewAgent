@@ -1,7 +1,7 @@
 {
   "findings": [
     {
-      "title": "Mutable default argument",
+      "title": "函数使用了可变默认参数",
       "file": "input.py"
     }
   ]

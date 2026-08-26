@@ -1,7 +1,7 @@
 {
   "findings": [
     {
-      "title": "Subprocess uses shell=True",
+      "title": "子进程调用使用了 shell=True",
       "file": "input.py"
     }
   ]

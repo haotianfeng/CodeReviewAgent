@@ -11,7 +11,7 @@ def test_collect_source_files_and_detect_bare_except(tmp_path: Path) -> None:
     findings = run_python_static_checks(files)
 
     assert [item.path for item in files] == ["sample.py"]
-    assert findings[0]["title"] == "Bare except catches every exception"
+    assert findings[0]["title"] == "裸 except 捕获了所有异常"
 
 
 def test_static_checks_detect_security_and_mutable_defaults(tmp_path: Path) -> None:
@@ -28,7 +28,7 @@ def test_static_checks_detect_security_and_mutable_defaults(tmp_path: Path) -> N
     titles = {item["title"] for item in findings}
 
     assert titles == {
-        "Mutable default argument",
-        "Dynamic code execution is unsafe",
-        "Subprocess uses shell=True",
+        "函数使用了可变默认参数",
+        "动态代码执行存在安全风险",
+        "子进程调用使用了 shell=True",
     }

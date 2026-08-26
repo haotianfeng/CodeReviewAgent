@@ -1,7 +1,7 @@
 {
   "findings": [
     {
-      "title": "Bare except catches every exception",
+      "title": "裸 except 捕获了所有异常",
       "file": "input.py"
     }
   ]

@@ -64,12 +64,12 @@ class CodeReviewAgent:
         score = max(0, 100 - min(60, len(issues) * 15))
         return ReviewReport(
             summary=(
-                "Offline review completed with deterministic Python checks. "
-                "Set OPENAI_API_KEY to enable LLM-assisted review."
+                "离线审查已完成，使用了确定性的 Python 检查。"
+                "配置 OPENAI_API_KEY 后可启用大模型辅助审查。"
             ),
             score=score,
             issues=issues,
-            strengths=[f"Collected {len(files)} supported source file(s) safely."],
+            strengths=[f"已安全收集 {len(files)} 个受支持的源代码文件。"],
             metadata=ReviewMetadata(
                 project=str(project_path),
                 mode="offline",
